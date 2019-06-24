@@ -258,8 +258,55 @@ export default class DtsGenerator {
             }
         }
     }
+
+    private mapTypes(tsType: string | undefined, schema: NormalizedSchema) {
+        const typeMappings = [
+            {
+                where: 'properties',
+                name: 'createdTime|lastUpdatedTime|uploadedTime|deletedTime|timestamp',
+                fromType: 'number',
+                toType: 'Date',
+            },
+            {
+                where: 'properties',
+                name: 'before|after',
+                fromType: 'string',
+                toType: 'Date',
+            },
+            {
+                where: 'schemas',
+                name: 'EpochTimestamp|CreatedTime',
+                fromType: 'number',
+                toType: 'Date',
+            },
+            {
+                where: 'properties',
+                name: 'columns',
+                fromType: undefined,
+                toType: 'any',
+            },
+            {
+                where: '(TimestampOrStringEnd|TimestampOrStringStart)',
+                name: 'oneOf',
+                fromType: 'number',
+                toType: 'Date',
+            },
+        ];
+        let fullId = schema.id.getAbsoluteId();
+        if (schema.rootSchema) {
+            fullId = schema.rootSchema.id.getAbsoluteId() + fullId;
+        }
+        for (const typeMapping of typeMappings) {
+            const nameRegex = new RegExp(typeMapping.where + '/' + typeMapping.name);
+            if (tsType === typeMapping.fromType && nameRegex.test(fullId)) {
+                return typeMapping.toType;
+            }
+        }
+        return tsType;
+    }
+
     private generateTypeName(schema: NormalizedSchema, type: string, terminate: boolean, outputOptional = true): void {
-        const tsType = utils.toTSType(type, schema.content);
+        const tsType = this.mapTypes(utils.toTSType(type, schema.content), schema);
         if (tsType) {
             this.convertor.outputPrimitiveTypeName(schema, tsType, terminate, outputOptional);
         } else if (type === 'object') {
