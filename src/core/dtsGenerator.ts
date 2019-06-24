@@ -26,6 +26,10 @@ export default class DtsGenerator {
         return result;
     }
 
+    private shouldSkipSchema(id: string) {
+       return id === '#/paths/listFiles/parameters/mimeType'; // hack to skip only this broken schema
+    }
+
     private walk(map: any): void {
         const keys = Object.keys(map).sort();
         for (const key of keys) {
@@ -33,6 +37,9 @@ export default class DtsGenerator {
             if (value.hasOwnProperty(typeMarker)) {
                 const schema = value[typeMarker] as Schema;
                 debug(`  walk doProcess: key=${key} schemaId=${schema.id.getAbsoluteId()}`);
+                if (this.shouldSkipSchema(schema.id.getAbsoluteId())) {
+                    continue;
+                }
                 this.walkSchema(schema);
                 delete value[typeMarker];
             }
